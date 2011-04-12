@@ -557,6 +557,11 @@ all_objects := \
 
 LOCAL_C_INCLUDES += $(TOPDIR)$(LOCAL_PATH) $(intermediates)
 
+## Allow a device's own headers to take precedence over global ones
+ifneq ($(TARGET_SPECIFIC_HEADER_PATH),)
+LOCAL_C_INCLUDES += $(TOPDIR)$(TARGET_SPECIFIC_HEADER_PATH)
+endif
+
 ifndef LOCAL_NDK_VERSION
   LOCAL_C_INCLUDES += $(JNI_H_INCLUDE)
 endif
