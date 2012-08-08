@@ -305,7 +305,7 @@ def SignOutput(temp_zip_name, output_zip_name):
 
 def AppendAssertions(script, input_zip):
   device = GetBuildProp("ro.product.device", input_zip)
-  script.AssertDevice(device)
+#  script.AssertDevice(device)
 
 
 def MakeRecoveryPatch(output_zip, recovery_img, boot_img):
