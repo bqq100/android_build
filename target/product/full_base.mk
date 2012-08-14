@@ -24,8 +24,7 @@ PRODUCT_PACKAGES := \
     libdrmframework \
     libdrmframework_jni \
     libfwdlockengine \
-    VideoEditor \
-    WAPPushManager
+    VideoEditor
 
 PRODUCT_PACKAGES += \
     Galaxy4 \
