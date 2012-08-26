@@ -123,7 +123,6 @@ GRANDFATHERED_USER_MODULES += \
 	exc_dump \
 	fastboot \
 	framework \
-	framework2 \
 	FrameworkCoreHostTests \
 	frameworks-core-util-lib \
 	fsck_msdos \
@@ -400,6 +399,7 @@ GRANDFATHERED_USER_MODULES += \
 	mkstubs \
 	mkuserimg.sh \
 	mkyaffs2image \
+	mms-common \
 	mockrilcontroller \
 	monkey \
 	monkeyrunner \
@@ -478,6 +478,7 @@ GRANDFATHERED_USER_MODULES += \
 	system_server \
 	tblgen \
 	tc \
+	telephony-common \
 	temp_layoutlib \
 	test_g2g \
 	test-progress \
