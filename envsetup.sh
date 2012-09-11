@@ -4,9 +4,9 @@ Invoke ". build/envsetup.sh" from your shell to add the following functions to y
 - croot:    Changes directory to the top of the tree.
 - m:        Makes from the top of the tree.
 - mm:       Builds all of the modules in the current directory.
-- mmp:     Builds all of the modules in the current directory and pushes them to the device.
+- mmp:      Builds all of the modules in the current directory and pushes them to the device.
 - mmm:      Builds all of the modules in the supplied directories.
-- mmmp:    Builds all of the modules in the supplied directories and pushes them to the device.
+- mmmp:     Builds all of the modules in the supplied directories and pushes them to the device.
 - cgrep:    Greps on all local C/C++ files.
 - jgrep:    Greps on all local Java files.
 - resgrep:  Greps on all local res/*.xml files.
@@ -60,10 +60,16 @@ function check_product()
 
     if (echo -n $1 | grep -q -e "^cna_") ; then
        CNA_BUILD=$(echo -n $1 | sed -e 's/^cna_//g')
-    else
+       NAM_VARIANT=$(echo -n $1 | sed -e 's/^cna_//g')
+    elif (echo -n $1 | grep -q -e "htc_") ; then
        CNA_BUILD=
+       NAM_VARIANT=$(echo -n $1)
+    else 
+       CNA_BUILD=
+       NAM_VARIANT=
     fi
     export CNA_BUILD
+    export NAM_VARIANT
 
     CALLED_FROM_SETUP=true BUILD_SYSTEM=build/core \
         TARGET_PRODUCT=$1 \
@@ -124,7 +130,9 @@ function setpaths()
     # and in with the new
     CODE_REVIEWS=
     prebuiltdir=$(getprebuilt)
+    prebuiltextradir=$(getprebuiltextra)
     gccprebuiltdir=$(get_abs_build_var ANDROID_GCC_PREBUILTS)
+    gccprebuiltextradir=$(get_abs_build_var ANDROID_GCC_PREBUILTS_EXTRA)
 
     # The gcc toolchain does not exists for windows/cygwin. In this case, do not reference it.
     export ANDROID_EABI_TOOLCHAIN=
@@ -139,8 +147,10 @@ function setpaths()
             toolchaindir=xxxxxxxxx
             ;;
     esac
-    if [ -d "$gccprebuiltdir/$toolchaindir" ]; then
-        export ANDROID_EABI_TOOLCHAIN=$gccprebuiltdir/$toolchaindir
+    if [ -d "$gccprebuiltextradir/$toolchaindir" ]; then
+        export ANDROID_EABI_TOOLCHAIN="$gccprebuiltextradir/$toolchaindir"
+    elif [ -d "$gccprebuiltdir/$toolchaindir" ]; then
+        export ANDROID_EABI_TOOLCHAIN="$gccprebuiltdir/$toolchaindir"
     fi
 
     export ARM_EABI_TOOLCHAIN=
@@ -154,8 +164,10 @@ function setpaths()
             toolchaindir=xxxxxxxxx
             ;;
     esac
-    if [ -d "$gccprebuiltdir/$toolchaindir" ]; then
-        export ARM_EABI_TOOLCHAIN=$gccprebuiltdir/$toolchaindir
+    if [ -e "$gccprebuiltextradir/$toolchaindir" ]; then
+        export ARM_EABI_TOOLCHAIN="$gccprebuiltextradir/$toolchaindir"
+    elif [ -d "$gccprebuiltdir/$toolchaindir" ]; then
+        export ARM_EABI_TOOLCHAIN="$gccprebuiltdir/$toolchaindir"
     fi
 
     export ANDROID_TOOLCHAIN=$ANDROID_EABI_TOOLCHAIN
@@ -490,6 +502,17 @@ function lunch()
     check_product $product
     if [ $? -ne 0 ]
     then
+        # if we can't find a product, try to grab it off the CNA github
+        T=$(gettop)
+        pushd $T > /dev/null
+        build/tools/roomservice.py $product
+        popd > /dev/null
+        check_product $product
+    else
+        build/tools/roomservice.py $product true
+    fi
+    if [ $? -ne 0 ]
+    then
         echo
         echo "** Don't have a product spec for: '$product'"
         echo "** Do you have the right repo manifest?"
@@ -798,6 +821,7 @@ function gdbclient()
    local OUT_SYMBOLS=$(get_abs_build_var TARGET_OUT_UNSTRIPPED)
    local OUT_SO_SYMBOLS=$(get_abs_build_var TARGET_OUT_SHARED_LIBRARIES_UNSTRIPPED)
    local OUT_EXE_SYMBOLS=$(get_abs_build_var TARGET_OUT_EXECUTABLES_UNSTRIPPED)
+   local PREBUILTS_EXTRA=$(get_abs_build_var ANDROID_PREBUILTS_EXTRA)
    local PREBUILTS=$(get_abs_build_var ANDROID_PREBUILTS)
    local ARCH=$(get_build_var TARGET_ARCH)
    local GDB
@@ -917,6 +941,11 @@ function getprebuilt
     get_abs_build_var ANDROID_PREBUILTS
 }
 
+function getprebuiltextra
+{
+    get_abs_build_var ANDROID_PREBUILTS_EXTRA
+}
+
 function tracedmdump()
 {
     T=$(gettop)
@@ -925,6 +954,7 @@ function tracedmdump()
         return
     fi
     local prebuiltdir=$(getprebuilt)
+    local prebuiltextradir=$(getprebuiltextra)
     local KERNEL=$T/prebuilt/android-arm/kernel/vmlinux-qemu
 
     local TRACE=$1
@@ -1151,7 +1181,7 @@ function mka() {
             ;;
     esac
 }
-	
+
 function reposync() {
     case `uname -s` in
         Darwin)

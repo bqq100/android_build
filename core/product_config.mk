@@ -188,7 +188,7 @@ else
   ifneq ($(CNA_BUILD),)
     $(call import-products, device/*/$(CNA_BUILD)/cna.mk)
   else
-    # Read in all of the product definitions specified by the AndroidProducts.mk
+  # Read in all of the product definitions specified by the AndroidProducts.mk
     # files in the tree.
     #
     #TODO: when we start allowing direct pointers to product files,

@@ -972,7 +972,7 @@ endef
 
 define transform-host-cpp-to-o
 @mkdir -p $(dir $@)
-@echo "host C++: $(PRIVATE_MODULE) <= $<"
+@echo -e ${CL_PFX}"host C++:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
 $(hide) $(PRIVATE_CXX) \
 	$(addprefix -I , $(PRIVATE_C_INCLUDES)) \
 	$(shell cat $(PRIVATE_IMPORT_INCLUDES)) \
@@ -1020,7 +1020,7 @@ $(hide) $(PRIVATE_CC) \
 endef
 
 define transform-host-c-to-o-no-deps
-@echo "host C: $(PRIVATE_MODULE) <= $<"
+@echo -e ${CL_PFX}"host C:"${CL_RST}" $(PRIVATE_MODULE) <= $<"
 $(call transform-host-c-or-s-to-o-no-deps, )
 endef
 
@@ -1547,7 +1547,7 @@ define transform-classes.jar-to-dex
 @echo "target Dex: $(PRIVATE_MODULE)"
 @mkdir -p $(dir $@)
 $(hide) $(DX) \
-    $(if $(findstring windows,$(HOST_OS)),,-JXms16M -JXmx2048M) \
+    $(if $(findstring windows,$(HOST_OS)),,-JXms16M -JXmx$(if $(call streq,$(HOST_BITS),32),1024,2048)M) \
     --dex --output=$@ \
     $(incremental_dex) \
     $(if $(NO_OPTIMIZE_DX), \
