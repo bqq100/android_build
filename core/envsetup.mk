@@ -165,7 +165,6 @@ endif
 else
 OUT_DIR := $(OUT_DIR_COMMON_BASE)/$(notdir $(PWD))
 endif
-endif
 
 DEBUG_OUT_DIR := $(OUT_DIR)/debug
 
