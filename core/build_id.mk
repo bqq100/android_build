@@ -23,11 +23,11 @@
 # (like "TC1-RC5").  It must be a single word, and is
 # capitalized by convention.
 #
-BUILD_ID := OPENMASTER
+#BUILD_ID := OPENMASTER
 
 # DISPLAY_BUILD_NUMBER should only be set for development branches,
 # If set, the BUILD_NUMBER (cl) is appended to the BUILD_ID for
 # a more descriptive BUILD_ID_DISPLAY, otherwise BUILD_ID_DISPLAY
 # is the same as BUILD_ID
-DISPLAY_BUILD_NUMBER := true
+#DISPLAY_BUILD_NUMBER := true
 export BUILD_ID=OPENMASTER
