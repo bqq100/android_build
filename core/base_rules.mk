@@ -79,8 +79,6 @@ ifneq ($(filter-out debug eng tests optional samples shell_ash shell_mksh,$(LOCA
 $(warning unusual tags $(LOCAL_MODULE_TAGS) on $(LOCAL_MODULE) at $(LOCAL_PATH))
 endif
 
-
-
 # Add implicit tags.
 #
 # If the local directory or one of its parents contains a MODULE_LICENSE_GPL
@@ -437,10 +435,10 @@ endif
 cleantarget := clean-$(LOCAL_MODULE)
 $(cleantarget) : PRIVATE_MODULE := $(LOCAL_MODULE)
 $(cleantarget) : PRIVATE_CLEAN_FILES := \
-		$(PRIVATE_CLEAN_FILES) \
-		$(LOCAL_BUILT_MODULE) \
-		$(LOCAL_INSTALLED_MODULE) \
-		$(intermediates)
+    $(PRIVATE_CLEAN_FILES) \
+    $(LOCAL_BUILT_MODULE) \
+    $(LOCAL_INSTALLED_MODULE) \
+    $(intermediates)
 $(cleantarget)::
 	@echo "Clean: $(PRIVATE_MODULE)"
 	$(hide) rm -rf $(PRIVATE_CLEAN_FILES)
@@ -449,9 +447,23 @@ $(cleantarget)::
 ## Common definitions for module.
 ###########################################################
 
+# aapt doesn't accept multiple --extra-packages flags.
+# We have to collapse them into a single --extra-packages flag here.
+LOCAL_AAPT_FLAGS := $(strip $(LOCAL_AAPT_FLAGS))
+ifdef LOCAL_AAPT_FLAGS
+ifeq ($(filter 0 1,$(words $(filter --extra-packages,$(LOCAL_AAPT_FLAGS)))),)
+aapt_flags := $(subst --extra-packages$(space),--extra-packages@,$(LOCAL_AAPT_FLAGS))
+aapt_flags_extra_packages := $(patsubst --extra-packages@%,%,$(filter --extra-packages@%,$(aapt_flags)))
+aapt_flags_extra_packages := $(sort $(subst :,$(space),$(aapt_flags_extra_packages)))
+LOCAL_AAPT_FLAGS := $(filter-out --extra-packages@%,$(aapt_flags)) \
+    --extra-packages $(subst $(space),:,$(aapt_flags_extra_packages))
+aapt_flags_extra_packages :=
+aapt_flags :=
+endif
+endif
+
 # Propagate local configuration options to this target.
 $(LOCAL_INTERMEDIATE_TARGETS) : PRIVATE_PATH:=$(LOCAL_PATH)
-$(LOCAL_INTERMEDIATE_TARGETS) : PRIVATE_POST_PROCESS_COMMAND:= $(LOCAL_POST_PROCESS_COMMAND)
 $(LOCAL_INTERMEDIATE_TARGETS) : PRIVATE_AAPT_FLAGS:= $(LOCAL_AAPT_FLAGS)
 $(LOCAL_INTERMEDIATE_TARGETS) : PRIVATE_JAVA_LIBRARIES:= $(LOCAL_JAVA_LIBRARIES)
 $(LOCAL_INTERMEDIATE_TARGETS) : PRIVATE_MANIFEST_PACKAGE_NAME:= $(LOCAL_MANIFEST_PACKAGE_NAME)
@@ -557,7 +569,7 @@ ALL_MODULES.$(LOCAL_MODULE).CHECKED := \
 ALL_MODULES.$(LOCAL_MODULE).BUILT := \
     $(ALL_MODULES.$(LOCAL_MODULE).BUILT) $(LOCAL_BUILT_MODULE)
 ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
-    $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(LOCAL_INSTALLED_MODULE)
+    $(strip $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(LOCAL_INSTALLED_MODULE))
 ALL_MODULES.$(LOCAL_MODULE).REQUIRED := \
     $(ALL_MODULES.$(LOCAL_MODULE).REQUIRED) $(LOCAL_REQUIRED_MODULES)
 ALL_MODULES.$(LOCAL_MODULE).EVENT_LOG_TAGS := \
@@ -568,7 +580,7 @@ ALL_MODULES.$(LOCAL_MODULE).MAKEFILE := \
     $(ALL_MODULES.$(LOCAL_MODULE).MAKEFILE) $(LOCAL_MODULE_MAKEFILE)
 ifdef LOCAL_MODULE_OWNER
 ALL_MODULES.$(LOCAL_MODULE).OWNER := \
-    $(strip $(ALL_MODULES.$(LOCAL_MODULE).OWNER) $(LOCAL_MODULE_OWNER))
+    $(sort $(ALL_MODULES.$(LOCAL_MODULE).OWNER) $(LOCAL_MODULE_OWNER))
 endif
 
 INSTALLABLE_FILES.$(LOCAL_INSTALLED_MODULE).MODULE := $(LOCAL_MODULE)

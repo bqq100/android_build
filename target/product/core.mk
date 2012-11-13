@@ -25,6 +25,7 @@ PRODUCT_PROPERTY_OVERRIDES := \
 PRODUCT_PACKAGES += \
     ApplicationsProvider \
     BackupRestoreConfirmation \
+    BasicDreams \
     Browser \
     Contacts \
     ContactsProvider \
@@ -36,12 +37,14 @@ PRODUCT_PACKAGES += \
     KeyChain \
     MediaProvider \
     PackageInstaller \
+    PhotoTable \
     PicoTts \
     SettingsProvider \
     SharedStorageBackup \
     TelephonyProvider \
     UserDictionaryProvider \
     VpnDialogs \
+    abcc \
     apache-xml \
     atrace \
     bouncycastle \
@@ -75,6 +78,7 @@ PRODUCT_PACKAGES += \
     libOpenSLES \
     libaudiopreprocessing \
     libaudioutils \
+    libbcc \
     libcrypto \
     libdownmix \
     libdvm \
@@ -91,10 +95,13 @@ PRODUCT_PACKAGES += \
     libmdnssd \
     libnativehelper \
     libnfc_ndef \
+    libportable \
     libpowermanager \
     libspeexresampler \
     libsqlite_jni \
     libssl \
+    libstagefright \
+    libstagefright_chromium_http \
     libstagefright_soft_aacdec \
     libstagefright_soft_aacenc \
     libstagefright_soft_amrdec \
@@ -131,10 +138,6 @@ PRODUCT_PACKAGES += \
     seapp_contexts \
     property_contexts \
     mac_permissions.xml
-
-PRODUCT_COPY_FILES += \
-    system/core/rootdir/init.usb.rc:root/init.usb.rc \
-    system/core/rootdir/init.trace.rc:root/init.trace.rc \
 
 # host-only dependencies
 ifeq ($(WITH_HOST_DALVIK),true)

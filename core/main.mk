@@ -200,6 +200,11 @@ ENABLE_INCREMENTALJAVAC := true
 MAKECMDGOALS := $(filter-out incrementaljavac, $(MAKECMDGOALS))
 endif
 
+# EMMA_INSTRUMENT_STATIC merges the static emma library to each emma-enabled module.
+ifeq (true,$(EMMA_INSTRUMENT_STATIC))
+EMMA_INSTRUMENT := true
+endif
+
 # Bring in standard build system definitions.
 include $(BUILD_SYSTEM)/definitions.mk
 
@@ -425,32 +430,12 @@ subdirs += build/tools/acp
 endif
 
 else	# !SDK_ONLY
-ifeq ($(BUILD_TINY_ANDROID), true)
-
-# TINY_ANDROID is a super-minimal build configuration, handy for board
-# bringup and very low level debugging
-
-subdirs := \
-	bionic \
-	system/core \
-	system/extras/ext4_utils \
-	system/extras/su \
-	build/libs \
-	build/target \
-	build/tools/acp \
-	external/gcc-demangle \
-	external/mksh \
-	external/yaffs2 \
-	external/zlib
-else	# !BUILD_TINY_ANDROID
 #
 # Typical build; include any Android.mk files we can find.
 #
 subdirs := $(TOP)
 
 FULL_BUILD := true
-
-endif	# !BUILD_TINY_ANDROID
 
 endif	# !SDK_ONLY
 
@@ -595,9 +580,18 @@ endif
 
 # When modules are tagged with debug eng or tests, they are installed
 # for those variants regardless of what the product spec says.
-debug_MODULES := $(sort $(call get-tagged-modules,debug))
-eng_MODULES := $(sort $(call get-tagged-modules,eng))
-tests_MODULES := $(sort $(call get-tagged-modules,tests))
+debug_MODULES := $(sort \
+        $(call get-tagged-modules,debug) \
+        $(call module-installed-files, $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PACKAGES_DEBUG)) \
+    )
+eng_MODULES := $(sort \
+        $(call get-tagged-modules,eng) \
+        $(call module-installed-files, $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PACKAGES_ENG)) \
+    )
+tests_MODULES := $(sort \
+        $(call get-tagged-modules,tests) \
+        $(call module-installed-files, $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PACKAGES_TESTS)) \
+    )
 
 # TODO: Remove the 3 places in the tree that use ALL_DEFAULT_INSTALLED_MODULES
 # and get rid of it from this list.
@@ -636,10 +630,20 @@ ifdef is_sdk_build
   modules_to_install := \
               $(filter-out $(target_gnu_MODULES),$(modules_to_install))
 
-  # Ensure every module listed in PRODUCT_PACKAGES gets something installed
+  # Ensure every module listed in PRODUCT_PACKAGES* gets something installed
+  # TODO: Should we do this for all builds and not just the sdk?
   $(foreach m, $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PACKAGES), \
-      $(if $(strip $(ALL_MODULES.$(m).INSTALLED)),,\
-          $(warning $(ALL_MODULES.$(m).MAKEFILE): Module '$(m)' in PRODUCT_PACKAGES has nothing to install!)))
+    $(if $(strip $(ALL_MODULES.$(m).INSTALLED)),,\
+      $(warning $(ALL_MODULES.$(m).MAKEFILE): Module '$(m)' in PRODUCT_PACKAGES has nothing to install!)))
+  $(foreach m, $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PACKAGES_DEBUG), \
+    $(if $(strip $(ALL_MODULES.$(m).INSTALLED)),,\
+      $(warning $(ALL_MODULES.$(m).MAKEFILE): Module '$(m)' in PRODUCT_PACKAGES_DEBUG has nothing to install!)))
+  $(foreach m, $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PACKAGES_ENG), \
+    $(if $(strip $(ALL_MODULES.$(m).INSTALLED)),,\
+      $(warning $(ALL_MODULES.$(m).MAKEFILE): Module '$(m)' in PRODUCT_PACKAGES_ENG has nothing to install!)))
+  $(foreach m, $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PACKAGES_TESTS), \
+    $(if $(strip $(ALL_MODULES.$(m).INSTALLED)),,\
+      $(warning $(ALL_MODULES.$(m).MAKEFILE): Module '$(m)' in PRODUCT_PACKAGES_TESTS has nothing to install!)))
 endif
 
 # Install all of the host modules
@@ -703,6 +707,9 @@ ramdisk: $(INSTALLED_RAMDISK_TARGET)
 .PHONY: factory_ramdisk
 factory_ramdisk: $(INSTALLED_FACTORY_RAMDISK_TARGET)
 
+.PHONY: factory_bundle
+factory_bundle: $(INSTALLED_FACTORY_BUNDLE_TARGET)
+
 .PHONY: systemtarball
 systemtarball: $(INSTALLED_SYSTEMTARBALL_TARGET)
 
@@ -725,10 +732,6 @@ cacheimage: $(INSTALLED_CACHEIMAGE_TARGET)
 .PHONY: bootimage
 bootimage: $(INSTALLED_BOOTIMAGE_TARGET)
 
-ifeq ($(BUILD_TINY_ANDROID), true)
-INSTALLED_RECOVERYIMAGE_TARGET :=
-endif
-
 # Build files and then package it into the rom formats
 .PHONY: droidcore
 droidcore: files \
@@ -741,10 +744,6 @@ droidcore: files \
 
 # dist_files only for putting your library into the dist directory with a full build.
 .PHONY: dist_files
-
-ifeq ($(EMMA_INSTRUMENT),true)
-  $(call dist-for-goals, dist_files, $(EMMA_META_ZIP))
-endif
 
 # Dist for droid if droid is among the cmd goals, or no cmd goal is given.
 ifneq ($(filter droid,$(MAKECMDGOALS))$(filter ||,|$(filter-out $(INTERNAL_MODIFIER_TARGETS),$(MAKECMDGOALS))|),)
@@ -760,10 +759,15 @@ ifneq ($(TARGET_BUILD_APPS),)
     unbundled_build_modules := $(TARGET_BUILD_APPS)
   endif
 
+  apps_only_installed_files := $(foreach m,$(unbundled_build_modules),$(ALL_MODULES.$(m).INSTALLED))
   # dist the unbundled app.
-  $(call dist-for-goals,apps_only, \
-    $(foreach m,$(unbundled_build_modules),$(ALL_MODULES.$(m).INSTALLED)) \
-  )
+  $(call dist-for-goals,apps_only, $(apps_only_installed_files))
+
+  ifeq ($(EMMA_INSTRUMENT),true)
+    $(EMMA_META_ZIP) : $(apps_only_installed_files)
+
+    $(call dist-for-goals,apps_only, $(EMMA_META_ZIP))
+  endif
 
 .PHONY: apps_only
 apps_only: $(unbundled_build_modules)
@@ -781,6 +785,7 @@ else # TARGET_BUILD_APPS
     $(INSTALLED_ANDROID_INFO_TXT_TARGET) \
     $(INSTALLED_RAMDISK_TARGET) \
     $(INSTALLED_FACTORY_RAMDISK_TARGET) \
+    $(INSTALLED_FACTORY_BUNDLE_TARGET) \
    )
 
   ifneq ($(TARGET_BUILD_PDK),true)
@@ -789,6 +794,12 @@ else # TARGET_BUILD_APPS
       $(INTERNAL_EMULATOR_PACKAGE_TARGET) \
       $(PACKAGE_STATS_FILE) \
     )
+  endif
+
+  ifeq ($(EMMA_INSTRUMENT),true)
+    $(EMMA_META_ZIP) : $(INSTALLED_SYSTEMIMAGE)
+
+    $(call dist-for-goals, dist_files, $(EMMA_META_ZIP))
   endif
 
 # Building a full system-- the default is to build droidcore
@@ -817,6 +828,8 @@ $(call dist-for-goals,sdk win_sdk, \
     $(INSTALLED_BUILD_PROP_TARGET) \
 )
 endif
+
+.PHONY: lintall
 
 .PHONY: samplecode
 sample_MODULES := $(sort $(call get-tagged-modules,samples))

@@ -20,8 +20,9 @@ PRODUCT_PROPERTY_OVERRIDES :=
 PRODUCT_PACKAGES := \
 	Calculator \
 	DeskClock \
-	Email \
+	Email2 \
 	Exchange2 \
+	FusedLocation \
 	Gallery \
 	Music \
 	Mms \
@@ -36,6 +37,7 @@ PRODUCT_PACKAGES := \
 	SystemUI \
 	Launcher2 \
 	Development \
+	DevelopmentSettings \
 	DrmProvider \
 	Fallback \
 	Settings \

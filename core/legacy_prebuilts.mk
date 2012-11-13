@@ -25,8 +25,6 @@ GRANDFATHERED_ALL_PREBUILT := \
 	akmd2 \
 	am \
 	ap_gain.bin \
-	audio.conf \
-	auto_pairing.conf \
 	AVRCP.kl \
 	baseline11k.par \
 	baseline8k.par \
@@ -34,7 +32,6 @@ GRANDFATHERED_ALL_PREBUILT := \
 	basic.ok \
 	batch \
 	bitmap_size.txt \
-	blacklist.conf \
 	bmgr \
 	boolean.g2g \
 	bp.img \
@@ -76,7 +73,6 @@ GRANDFATHERED_ALL_PREBUILT := \
 	init.sholes.rc \
 	init.stingray.rc \
 	input \
-	input.conf \
 	kernel \
 	lbl \
 	libEGL_POWERVR_SGX530_121.so \

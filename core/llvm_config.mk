@@ -39,6 +39,28 @@ ifeq ($(TARGET_ARCH),arm)
     -fno-align-jumps \
     -Wa,--noexecstack
 endif
+ifeq ($(TARGET_ARCH),mips)
+  CLANG_CONFIG_EXTRA_CFLAGS += \
+    -target mipsel-linux-androideabi \
+    -nostdlibinc \
+    -B$(TARGET_TOOLCHAIN_ROOT)/mipsel-linux-android/bin
+  CLANG_CONFIG_EXTRA_LDFLAGS += \
+    -target mipsel-linux-androideabi \
+    -B$(TARGET_TOOLCHAIN_ROOT)/mipsel-linux-android/bin
+  CLANG_CONFIG_UNKNOWN_CFLAGS += \
+    -EL \
+    -mips32 \
+    -mips32r2 \
+    -mhard-float \
+    -fno-strict-volatile-bitfields \
+    -fgcse-after-reload \
+    -frerun-cse-after-loop \
+    -frename-registers \
+    -march=mips32r2 \
+    -mtune=mips32r2 \
+    -march=mips32 \
+    -mtune=mips32
+endif
 ifeq ($(TARGET_ARCH),x86)
   CLANG_CONFIG_EXTRA_CFLAGS += \
     -target i686-linux-android \
@@ -67,7 +89,15 @@ TARGET_thumb_CLANG_CFLAGS += $(filter-out $(CLANG_CONFIG_UNKNOWN_CFLAGS),$(TARGE
 $(call clang-flags-subst,-march=armv5te,-march=armv5t)
 $(call clang-flags-subst,-march=armv5e,-march=armv5)
 
+# clang does not support -Wno-psabi and -Wno-unused-but-set-variable
+$(call clang-flags-subst,-Wno-psabi,)
+$(call clang-flags-subst,-Wno-unused-but-set-variable,)
+
 ADDRESS_SANITIZER_CONFIG_EXTRA_CFLAGS := -faddress-sanitizer
 ADDRESS_SANITIZER_CONFIG_EXTRA_LDFLAGS := -Wl,-u,__asan_preinit
 ADDRESS_SANITIZER_CONFIG_EXTRA_SHARED_LIBRARIES := libdl libasan_preload
 ADDRESS_SANITIZER_CONFIG_EXTRA_STATIC_LIBRARIES := libasan
+
+# This allows us to use the superset of functionality that compiler-rt
+# provides to Clang (for supporting features like -ftrapv).
+COMPILER_RT_CONFIG_EXTRA_STATIC_LIBRARIES := libcompiler-rt-extras

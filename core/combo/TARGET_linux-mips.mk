@@ -21,7 +21,7 @@
 # than mips32r2-fp. Each value should correspond to a file named
 # $(BUILD_COMBOS)/arch/<name>.mk which must contain
 # makefile variable definitions similar to the preprocessor
-# defines in system/core/include/arch/<combo>/AndroidConfig.h. Their
+# defines in build/core/combo/include/arch/<combo>/AndroidConfig.h. Their
 # purpose is to allow module Android.mk files to selectively compile
 # different versions of code based upon the funtionality and
 # instructions available in a given architecture version.
@@ -60,7 +60,7 @@ ifneq ($(wildcard $(TARGET_TOOLS_PREFIX)gcc$(HOST_EXECUTABLE_SUFFIX)),)
         TARGET_STRIP_COMMAND = $(TARGET_STRIP) --strip-all $< -o $@
     else
         TARGET_STRIP_COMMAND = $(TARGET_STRIP) --strip-all $< -o $@ && \
-	    $(TARGET_OBJCOPY) --add-gnu-debuglink=$< $@
+            $(TARGET_OBJCOPY) --add-gnu-debuglink=$< $@
     endif
 endif
 
@@ -78,9 +78,6 @@ ifeq ($(FORCE_MIPS_DEBUGGING),true)
   TARGET_mips_CFLAGS += -fno-omit-frame-pointer
 endif
 
-android_config_h := $(call select-android-config-h,linux-mips)
-arch_include_dir := $(dir $(android_config_h))
-
 TARGET_GLOBAL_CFLAGS += \
 			$(TARGET_mips_CFLAGS) \
 			-Ulinux -U__unix -U__unix__ -Umips \
@@ -89,9 +86,11 @@ TARGET_GLOBAL_CFLAGS += \
 			-fdata-sections \
 			-funwind-tables \
 			-Werror=format-security \
-			$(arch_variant_cflags) \
-			-include $(android_config_h) \
-			-I $(arch_include_dir)
+			$(arch_variant_cflags)
+
+android_config_h := $(call select-android-config-h,linux-mips)
+TARGET_ANDROID_CONFIG_CFLAGS := -include $(android_config_h) -I $(dir $(android_config_h))
+TARGET_GLOBAL_CFLAGS += $(TARGET_ANDROID_CONFIG_CFLAGS)
 
 # This warning causes dalvik not to build with gcc 4.6+ and -Werror.
 # We cannot turn it off blindly since the option is not available
@@ -202,12 +201,12 @@ TARGET_C_INCLUDES := \
 	$(libm_root)/include/mips \
 	$(libthread_db_root)/include
 
-TARGET_CRTBEGIN_STATIC_O := $(TARGET_OUT_STATIC_LIBRARIES)/crtbegin_static.o
-TARGET_CRTBEGIN_DYNAMIC_O := $(TARGET_OUT_STATIC_LIBRARIES)/crtbegin_dynamic.o
-TARGET_CRTEND_O := $(TARGET_OUT_STATIC_LIBRARIES)/crtend_android.o
+TARGET_CRTBEGIN_STATIC_O := $(TARGET_OUT_INTERMEDIATE_LIBRARIES)/crtbegin_static.o
+TARGET_CRTBEGIN_DYNAMIC_O := $(TARGET_OUT_INTERMEDIATE_LIBRARIES)/crtbegin_dynamic.o
+TARGET_CRTEND_O := $(TARGET_OUT_INTERMEDIATE_LIBRARIES)/crtend_android.o
 
-TARGET_CRTBEGIN_SO_O := $(TARGET_OUT_STATIC_LIBRARIES)/crtbegin_so.o
-TARGET_CRTEND_SO_O := $(TARGET_OUT_STATIC_LIBRARIES)/crtend_so.o
+TARGET_CRTBEGIN_SO_O := $(TARGET_OUT_INTERMEDIATE_LIBRARIES)/crtbegin_so.o
+TARGET_CRTEND_SO_O := $(TARGET_OUT_INTERMEDIATE_LIBRARIES)/crtend_so.o
 
 TARGET_STRIP_MODULE:=true
 
@@ -244,36 +243,36 @@ $(hide) $(PRIVATE_CXX) -nostdlib -Bdynamic -fPIE -pie \
 	-Wl,--gc-sections \
 	-Wl,-z,nocopyreloc \
 	-o $@ \
-	$(TARGET_GLOBAL_LD_DIRS) \
+	$(PRIVATE_TARGET_GLOBAL_LD_DIRS) \
 	-Wl,-rpath-link=$(TARGET_OUT_INTERMEDIATE_LIBRARIES) \
 	$(call normalize-target-libraries,$(PRIVATE_ALL_SHARED_LIBRARIES)) \
-	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(TARGET_CRTBEGIN_DYNAMIC_O)) \
+	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(PRIVATE_TARGET_CRTBEGIN_DYNAMIC_O)) \
 	$(PRIVATE_ALL_OBJECTS) \
 	$(if $(PRIVATE_GROUP_STATIC_LIBRARIES),-Wl$(comma)--start-group) \
 	$(call normalize-target-libraries,$(PRIVATE_ALL_STATIC_LIBRARIES)) \
 	$(if $(PRIVATE_GROUP_STATIC_LIBRARIES),-Wl$(comma)--end-group) \
-	$(TARGET_GLOBAL_LDFLAGS) \
+	$(PRIVATE_TARGET_GLOBAL_LDFLAGS) \
 	$(PRIVATE_LDFLAGS) \
-	$(TARGET_FDO_LIB) \
-	$(TARGET_LIBGCC) \
-	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(TARGET_CRTEND_O))
+	$(PRIVATE_TARGET_FDO_LIB) \
+	$(PRIVATE_TARGET_LIBGCC) \
+	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(PRIVATE_TARGET_CRTEND_O))
 endef
 
 define transform-o-to-static-executable-inner
 $(hide) $(PRIVATE_CXX) -nostdlib -Bstatic \
 	-Wl,--gc-sections \
 	-o $@ \
-	$(TARGET_GLOBAL_LD_DIRS) \
-	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(TARGET_CRTBEGIN_STATIC_O)) \
-	$(TARGET_GLOBAL_LDFLAGS) \
+	$(PRIVATE_TARGET_GLOBAL_LD_DIRS) \
+	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(PRIVATE_TARGET_CRTBEGIN_STATIC_O)) \
+	$(PRIVATE_TARGET_GLOBAL_LDFLAGS) \
 	$(PRIVATE_LDFLAGS) \
 	$(PRIVATE_ALL_OBJECTS) \
 	$(call normalize-target-libraries,$(filter-out %libc_nomalloc.a,$(filter-out %libc.a,$(PRIVATE_ALL_STATIC_LIBRARIES)))) \
 	-Wl,--start-group \
 	$(call normalize-target-libraries,$(filter %libc.a,$(PRIVATE_ALL_STATIC_LIBRARIES))) \
 	$(call normalize-target-libraries,$(filter %libc_nomalloc.a,$(PRIVATE_ALL_STATIC_LIBRARIES))) \
-	$(TARGET_FDO_LIB) \
-	$(TARGET_LIBGCC) \
+	$(PRIVATE_TARGET_FDO_LIB) \
+	$(PRIVATE_TARGET_LIBGCC) \
 	-Wl,--end-group \
-	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(TARGET_CRTEND_O))
+	$(if $(filter true,$(PRIVATE_NO_CRT)),,$(PRIVATE_TARGET_CRTEND_O))
 endef
